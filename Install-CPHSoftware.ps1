@@ -3,6 +3,8 @@
 # Last Edited by Michael Brady 5-16-2014
 # TODO: open file security warning
 # TODO: choose log based on permissions
+# TODO: MSI logic
+# TODO: Fix dates/times usage
 #
 # Make sure Execution Policy is set
 Set-ExecutionPolicy RemoteSigned
@@ -46,7 +48,7 @@ $SoftwareSetupSyntax = ""
 ################################################
 
 # Choose log file to use
-function CreateLogFile {
+function New-LogFile {
     If (Test-Path "$CCMPath\Logs")
         { $global:CPHLogFile = "$CCMPath\Logs\CPHConfigMgrOps.log" }
         ElseIf (Test-Path "$MiniNTPath") 
@@ -56,95 +58,95 @@ function CreateLogFile {
         Else { Write-EventLog -LogName System -Source "powershell.exe" -EventId 2 -EntryType Warning -Message "Script is aborting; no log could be created."
             $script:Returncode = 1
             Exit $script:Returncode }
-        AppendtoLog "Log file successfully created." "$LogInfo"
+        Add-LogEntry "Log file successfully created." "$LogInfo"
         }
 
 # Logging Info; standard is to match SMS Trace
-function AppendtoLog ($LogMessage, $Messagetype) {
+function Add-LogEntry ($LogMessage, $Messagetype) {
     Add-Content $CPHLogFile "<![LOG[$LogMessage]LOG]!><time=`"$TIME`" date=`"$DATE`" component=`"$ScriptName`" context=`"`" type=`"$Messagetype`" thread=`"`" file=`"powershell.exe`">"
     }
 # Make the script close the log with a divider and exit with return code gathered earlier
-function EndScript() {
-    AppendtoLog "Closing the log file." "$LogInfo"
-    AppendtoLog "******************************************************************************************************************************************************" "$LogInfo"
+function Exit-Script() {
+    Add-LogEntry "Closing the log file." "$LogInfo"
+    Add-LogEntry "******************************************************************************************************************************************************" "$LogInfo"
     Exit $script:Returncode    
     }
 
 # Uninstall old versions
-function UninstallOldVersions() {
-    AppendtoLog "Uninstalling old versions of the software." "$LogInfo"
+function Uninstall-OldVersions() {
+    Add-LogEntry "Uninstalling old versions of the software." "$LogInfo"
     Start-Process $env:windir\$WinSysFolder\msiexec.exe '/x {x} /qn /norestart' -PassThru | Wait-Process -Timeout 600
     }
 
 # Software install and configuration
 # Make sure to change the timeout to match the application. 10 minutes may not be enough.
-function InstallSoftware() {
+function Install-CPHSoftware() {
     $SoftwareFilePath = "$ScriptPath\$SoftwareInstallFile"
     $InstallCommandLine = (Start-Process $SoftwareFilePath $SoftwareSetupSyntax -PassThru)
-    AppendtoLog "Attempting to install software $SoftwareTitle, $SoftwareVersion" "$LogInfo"
+    Add-LogEntry "Attempting to install software $SoftwareTitle, $SoftwareVersion" "$LogInfo"
 
     If (Test-Path $SoftwareFilePath) {
         If (($Host.Version.Major -ne 1) -and ($Host.Version.Major -ne 2)) {
-            AppendtoLog "Disabling open file security warning" "$LogInfo"
+            Add-LogEntry "Disabling open file security warning" "$LogInfo"
             # Only functional on PS 3+
             Unblock-File $SoftwareFilePath
             }
-        AppendtoLog "Running command line: `"$SoftwareFilePath`" $SoftwareSetupSyntax" "$LogInfo"
+        Add-LogEntry "Running command line: `"$SoftwareFilePath`" $SoftwareSetupSyntax" "$LogInfo"
         $InstallCommandLine | Wait-Process -Timeout 600
         $script:Returncode = ($InstallCommandLine).ExitCode
-        AppendtoLog "Finished running command line." "$LogInfo"
-        VerifyInstall 
+        Add-LogEntry "Finished running command line." "$LogInfo"
+        Verify-Install 
 		}
         Else { $script:Returncode = "1"
-            AppendtoLog "File path $SoftwareFilePath doesn't appear to exist. Exiting with error." "$LogError"
-            VerifyInstall 
+            Add-LogEntry "File path $SoftwareFilePath doesn't appear to exist. Exiting with error." "$LogError"
+            Verify-Install 
 			}
     }
 
-function VerifyInstall() {
+function Verify-Install() {
     If ($script:Returncode -eq "0") {
-        AppendtoLog "$SoftwareTitle, $SoftwareVersion appears to have installed successfully." "$LogInfo" }
+        Add-LogEntry "$SoftwareTitle, $SoftwareVersion appears to have installed successfully." "$LogInfo" }
         ElseIf ($script:Returncode -eq "3010") {
-            AppendtoLog "$SoftwareTitle, $SoftwareVersion appears to have installed successfully but a reboot is required." "$LogWarning" }
+            Add-LogEntry "$SoftwareTitle, $SoftwareVersion appears to have installed successfully but a reboot is required." "$LogWarning" }
         Else {
-            AppendtoLog "Return code $script:Returncode" "$LogError"
-            AppendtoLog "There was a problem while installing $SoftwareTitle, $SoftwareVersion. Exiting with error." "$LogError"
-            EndScript
+            Add-LogEntry "Return code $script:Returncode" "$LogError"
+            Add-LogEntry "There was a problem while installing $SoftwareTitle, $SoftwareVersion. Exiting with error." "$LogError"
+            Exit-Script
             Exit $script:Returncode }
     }
 
-function CleanPublicDesktop() {
-    AppendtoLog "Attempting to remove shortcuts from public desktop." "$LogInfo"
+function Remove-Shortcuts() {
+    Add-LogEntry "Attempting to remove shortcuts from public desktop." "$LogInfo"
     $ShortcutFile = "$PublicDesktop\$SoftwareTitle.lnk"
-    AppendtoLog "Searching for $ShortcutFile" "$LogInfo"
+    Add-LogEntry "Searching for $ShortcutFile" "$LogInfo"
     If (Test-Path $ShortcutFile) {
-        AppendtoLog "File exists, removing." "$LogInfo"
+        Add-LogEntry "File exists, removing." "$LogInfo"
         Remove-Item $ShortcutFile }
     }
 
  #Use this function to do misc configuration, such as copying config. files
-function InstallConfiguration() {
-    AppendtoLog "Starting install configuration." "$LogInfo"
+function Install-SoftwareConfiguration() {
+    Add-LogEntry "Starting install configuration." "$LogInfo"
     If ((Test-Path "$ScriptPath\file.cfg") -and (Test-Path "${env:ProgramFiles(x86)}\$SoftwareTitle")) {
-        AppendtoLog "Copying file.cfg." "$LogInfo"
+        Add-LogEntry "Copying file.cfg." "$LogInfo"
         Copy-Item "$ScriptPath\file.cfg" "${env:ProgramFiles(x86)}\$SoftwareTitle\" }
      If ((Test-Path "$ScriptPath\file.cfg") -and (Test-Path "${env:ProgramFiles}\$SoftwareTitle")) {
-        AppendtoLog "Copying file.cfg." "$LogInfo"
+        Add-LogEntry "Copying file.cfg." "$LogInfo"
         Copy-Item "$ScriptPath\file.cfg" "${env:ProgramFiles}\$SoftwareTitle\" }
     }
      
 # Update ConfigMgr Hardware Inventory
-function RunHardwareInventory () {
+function Get-HardwareInventory () {
     $SMSClient = [wmiclass] "\\$env:COMPUTERNAME\root\ccm:SMS_Client"
     $SMSClient.TriggerSchedule("{00000000-0000-0000-0000-000000000001}")
-    AppendtoLog "Running Hardware Inventory." "$LogInfo"
+    Add-LogEntry "Running Hardware Inventory." "$LogInfo"
     }
 
 # Execute
-CreateLogFile
-#UninstallOldVersions
-InstallSoftware
-#CleanPublicDesktop
-#InstallConfiguration
-RunHardwareInventory
-EndScript
+New-LogFile
+#Uninstall-OldVersions
+Install-CPHSoftware
+#Remove-Shortcuts
+#Install-SoftwareConfiguration
+Get-HardwareInventory
+Exit-Script
