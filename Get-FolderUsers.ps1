@@ -1,87 +1,57 @@
 ﻿## TODO: add -ExcludeDomainAdmins parameter, -ShowOnlyuninherited
+## TODO: documentation
+## TODO: get output ideally formatted
+## TODO: input validation
 
 [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$True,Position=1)]
             [string]$Path,
-        [switch]$Recurse
+        [switch]$Recurse,
+        [switch]$ExcludeDA,
+        [switch]$OnlyUninherited
         )
         
 
 $ACLS = ""
-$x = ""
+$Directories=""
 
-$ACLS = Get-ACL -Path $Path | Select-Object -ExpandProperty Access
-Write-Output "Root $Path"
-Foreach ($x in $ACLS) {
-    If (($x.IdentityReference  -notlike "NT AUTHORITY\SYSTEM") -and ($x.IdentityReference -notlike "*Computer*") ) {
-       $GroupName =  Split-Path $x.IdentityReference -leaf
-       $DomainName = Split-Path $x.IdentityReference
-       If ($DomainName -eq "PUBLIC-HEALTH") {
-            If ( (Get-Adobject -Filter {Name -eq $GroupName} -server ph-dc1.public-health.uiowa.edu).objectClass -eq "group" ) {
-                    $Usernames = (Get-Adgroupmember $GroupName -server ph-dc1.public-health.uiowa.edu).Name
-                    If ($x.IsInherited -eq "True")  {Write-Output "Inherited : $GroupName : $usernames" }
-                    Else {Write-Output "$GroupName : $Usernames" }
-                    $Usernames = ""
-                }
-                        Else { 
-                            If ($x.IsInherited -eq "True") { Write-Output "Inherited : $xGroupName" }
-                                Else {Write-Output "$GroupName"}
-                        }
+$Directories = @($Path)
+If ($Recurse.IsPresent ) {
+    $RecurseDirList = (Get-ChildItem -Path $Path -Recurse -Directory).FullName
+    $Directories = $Directories + $RecurseDirList
+     }
+Foreach ($Directory in $directories) {
+    $ACLS = Get-ACL -Path $Directory | Select-Object -ExpandProperty Access
+    Write-Output "*********************`n$Directory"
+    Foreach ($ACL in $ACLS) {
+        If (($ACL.IdentityReference  -notlike "NT AUTHORITY\SYSTEM") -and ($ACL.IdentityReference -notlike "*Computer*") ) {
+        $GroupName =  Split-Path $ACL.IdentityReference -leaf
+        $DomainName = Split-Path $ACL.IdentityReference
+            If ( (Get-Adobject -Filter {Name -eq $GroupName} -server $DomainName).objectClass -eq "group" ) {
+                If (( $OnlyUninherited.IsPresent) -and ($ACL.IsInherited = "True")) { break }
+                If (( $ExcludeDA.IsPresent) -and ($ACL.IdentityReference -like "*Domain Admins")) { break }
+                $Usernames = (Get-Adgroupmember $GroupName -server $DomainName).Name
+                $ACLoProp = @{ 'Name' = $ACL.IdentityReference; 'Inherited' = $ACL.IsInherited; 'Rights' = $ACL.FileSystemRights; 'Members' = $Usernames}
+                $CPHACLObject = New-Object -TypeName PSObject -Property $ACLoProp
+                Write-Output $CPHACLObject | Format-Table
+                $Usernames = ""
+                $ACLoProp = ""
+                $CPHACLObject = ""
             }
-            ElseIf ($DomainName -eq "IOWA") {
-                If ((Get-Adobject -Filter {Name -eq $GroupName} -server iowadc1.iowa.uiowa.edu).objectClass -eq "group") {
-                     $Usernames = (Get-Adgroupmember $GroupName -server iowadc1.iowa.uiowa.edu).Name
-                     If ($x.IsInherited -eq "True") {Write-Output "Inherited : $GroupName : $usernames" }
-                     Else {Write-Output  "$GroupName : $Usernames" }
-                     $Usernames = ""
-                    }
-                        Else { 
-                            If ($x.IsInherited -eq "True") { Write-Output "Inherited : $GroupName" }
-                                Else {Write-Output "$GroupName"}
-                        }
-                }
-    }
-
-}
-If ($Recurse.IsPresent) {
-    $DIRLIST = (Get-ChildItem -Path $Path -Recurse -Directory).FullName
-    Foreach ($y in $DIRLIST) {
-        Write-Output "******************"
-        $y
-        $rACLS = Get-ACL -Path $y | Select-Object -ExpandProperty Access
-        Foreach ($z in $rACLS) {
-           If ( ($z.IdentityReference  -notlike "NT AUTHORITY\SYSTEM") -and ($z.IdentityReference -notlike "*Computer*")) {
-          $rGroupName =  Split-Path $z.IdentityReference -leaf
-          $rDomainName = Split-Path $z.IdentityReference
-              If ($rDomainName -eq "PUBLIC-HEALTH") {
-                 If ( (Get-Adobject -Filter {Name -eq $rGroupName} -server ph-dc1.public-health.uiowa.edu).objectClass -eq "group" ) {
-                       $rUsername = (Get-Adgroupmember $rGroupName -server ph-dc1.public-health.uiowa.edu).Name
-                       If ($z.IsInherited -eq "True") { Write-Output "Inherited : $rGroupName : $rUsername" }
-                           Else {Write-Output "$rGroupName : $rUsername" }
-                        $rUsername = ""
-                     }
-                         Else { 
-                                If ($z.IsInherited -eq "True") { Write-Output "Inherited : $rGroupName" }
-                                  Else {Write-Output "$rGroupName"}
-                          }
-                 }
-                  ElseIf ($rDomainName -eq "IOWA") {
-                      If ((Get-Adobject -Filter {Name -eq $rGroupName} -server iowadc1.iowa.uiowa.edu).objectClass -eq "group") {
-                          $rUsername = (Get-Adgroupmember $rGroupName -server iowadc1.iowa.uiowa.edu).Name
-                          If ($z.IsInherited -eq "True") { Write-Output "Inherited : $rGroupName : $rUsername" }
-                            Else {Write-Output "$rGroupName : $rUsername" }
-                            $rUsername = ""
-                        }
-                          Else { 
-                               If ($z.IsInherited -eq "True") { Write-Output "Inherited : $rGroupName" }
-                                   Else {Write-Output "$rGroupName"}
-                           }
+                Else { 
+                    $ACLoProp = @{ 'Name' = $ACL.IdentityReference; 'Inherited' = $ACL.IsInherited; 'Rights' = $ACL.FileSystemRights; 'Members' = ''}
+                    $CPHACLObject = New-Object -TypeName PSObject -Property $ACLoProp
+                    Write-Output $CPHACLObject | Format-Table
+                    $Usernames = ""
+                    $ACLoProp = ""
+                    $CPHACLObject = ""
                   }
-          }
-    }
-    }
+        }
+        $ACL = ""
+        $ACLS = ""
+        }
+    $Directory = ""
+    $Directories = ""
 }
-$ACLS = ""
 $Path = ""
-$x = ""
