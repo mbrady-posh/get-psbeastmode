@@ -1,13 +1,24 @@
-#
-# Outline for College of Public Health PowerShell scripts
-# Last Edited by Michael Brady 5-16-2014
-# TODO: open file security warning
-# TODO: choose log based on permissions
-# TODO: MSI logic
-# TODO: Fix dates/times usage
-#
-# Make sure Execution Policy is set
-Set-ExecutionPolicy RemoteSigned
+<#
+
+    .SYNOPSIS
+
+    This script installs software silently for use in a Configuration Manager environment and contains various configuration and clean-up functionality. A robust log is also created.
+
+    .DESCRIPTION
+
+    This script requires information be provided in the form of the software name, version, setup file, etc in order to function. Uninstalling old versions and performing configuration is also possible when the appropriate functions are edited. This script should be run as administrator. Some examples are provided. Written by Michael Brady.
+
+    .EXAMPLE
+
+    .\Install-Software.ps1
+
+    Install software silently, performs a hardware inventory cycle to update the Configuration Manager database and logs to C:\Windows\CCM\ConfigMgrOps.log.
+
+#>
+
+
+[CmdletBinding()]
+    Param( )
 
 # Variables to be set before doing anything
 # Set Constants
@@ -15,16 +26,14 @@ Set-Variable LogInfo -Option Constant -value 1 -Scope Script
 Set-Variable LogWarning -Option Constant -value 2 -Scope Script
 Set-Variable LogError -Option Constant -value 3 -Scope Script
 
-# Set standard time and date variables; SMS Trace standard
-$DATE = Get-Date -format MM-dd-yyyy
-$TIME = (Get-Date -format HH:mm:ss)+".000+300"
-
-# Declare common string variables
+# Set some common variables
 $ScriptName = $MyInvocation.MyCommand.Name
 $OSType = Get-WmiObject -Class Win32_OperatingSystem | Select-Object -ExpandProperty OSArchitecture
 If ($OSType -eq "64-bit") {
-    $WinSysFolder = "SysWow64" }
-    Else { $WinSysFolder = "System32" }
+    $WinSysFolder = "SysWow64" 
+    }
+    Else { $WinSysFolder = "System32" 
+        }
 $Returncode = 0
 
 # Variables for common paths
@@ -35,10 +44,6 @@ $CCMPath = "$env:windir\ccm"
 $MiniNTPath = "$env:SystemDrive\MININT\SMSOSD"
 $PublicDesktop = "$env:PUBLIC\Desktop"
 
-# Declare common objects
-$objShell = New-Object -ComObject Shell.Application
-
-
 ################################################
 # Set software information
 $SoftwareTitle = ""
@@ -48,23 +53,26 @@ $SoftwareSetupSyntax = ""
 ################################################
 
 # Choose log file to use
-function New-LogFile {
-    If (Test-Path "$CCMPath\Logs")
-        { $global:CPHLogFile = "$CCMPath\Logs\CPHConfigMgrOps.log" }
-        ElseIf (Test-Path "$MiniNTPath") 
-            { $global:CPHLogFile = "$MiniNTPath\Logs\CPHConfigMgrOps.log" }
-        ElseIf (Test-Path "$env:TEMP") 
-            { $global:CPHLogFile = "$env:TEMP\Logs\CPHConfigMgrOps.log" }
-        Else { Write-EventLog -LogName System -Source "powershell.exe" -EventId 2 -EntryType Warning -Message "Script is aborting; no log could be created."
-            $script:Returncode = 1
-            Exit $script:Returncode }
-        Add-LogEntry "Log file successfully created." "$LogInfo"
+function New-LogFile() {
+    $LogFilePaths =  "$CCMPath\Logs\ConfigMgrOps.log", "$MiniNTPath\Logs\ConfigMgrOps.log","$env:TEMP\ConfigMgrOps.log"
+    Foreach ($LogFilePath in $LogFilePaths) {
+        $script:NewLogError = $null
+        $script:ConfigMgrLogFile = $LogFilePath
+        Add-LogEntry "Log file successfully intialized." $LogInfo
+        If (-Not($script:NewLogError)) { break }
         }
-
-# Logging Info; standard is to match SMS Trace
-function Add-LogEntry ($LogMessage, $Messagetype) {
-    Add-Content $CPHLogFile "<![LOG[$LogMessage]LOG]!><time=`"$TIME`" date=`"$DATE`" component=`"$ScriptName`" context=`"`" type=`"$Messagetype`" thread=`"`" file=`"powershell.exe`">"
+        If ($script:NewLogError) {
+            $script:Returncode = 1
+            Exit $script:Returncode
+            }
     }
+
+# Logging Info
+function Add-LogEntry ($LogMessage, $Messagetype) {
+    # Date and time is set to the SMS Trace standard
+    Add-Content $script:ConfigMgrLogFile "<![LOG[$LogMessage]LOG]!><time=`"$((Get-Date -format HH:mm:ss)+".000+300")`" date=`"$(Get-Date -format MM-dd-yyyy)`" component=`"$ScriptName`" context=`"`" type=`"$Messagetype`" thread=`"`" file=`"powershell.exe`">"  -Errorvariable script:NewLogError
+    }
+
 # Make the script close the log with a divider and exit with return code gathered earlier
 function Exit-Script() {
     Add-LogEntry "Closing the log file." "$LogInfo"
@@ -80,16 +88,24 @@ function Uninstall-OldVersions() {
 
 # Software install and configuration
 # Make sure to change the timeout to match the application. 10 minutes may not be enough.
-function Install-CPHSoftware() {
-    $SoftwareFilePath = "$ScriptPath\$SoftwareInstallFile"
-    $InstallCommandLine = (Start-Process $SoftwareFilePath $SoftwareSetupSyntax -PassThru)
+function Install-Software() {
+    If ($SoftwareInstallFile.EndsWith(".msi")) {
+        $SoftwareFilePath = "$env:windir\$winsysfolder\msiexec.exe"
+        $SoftwareSetupSyntax = "/i " + """" + $ScriptPath + "\" + $SoftwareInstallFile + """ " + $SoftwareSetupSyntax
+        $InstallCommandLine = (Start-Process $SoftwareFilePath $SoftwareSetupSyntax -PassThru)
+        }
+        Else {
+            $SoftwareFilePath = "$ScriptPath\$SoftwareInstallFile"
+            $InstallCommandLine = (Start-Process $SoftwareFilePath $SoftwareSetupSyntax -PassThru)
+            }
     Add-LogEntry "Attempting to install software $SoftwareTitle, $SoftwareVersion" "$LogInfo"
 
-    If (Test-Path $SoftwareFilePath) {
+   If (Test-Path $SoftwareFilePath) {
         If (($Host.Version.Major -ne 1) -and ($Host.Version.Major -ne 2)) {
             Add-LogEntry "Disabling open file security warning" "$LogInfo"
-            # Only functional on PS 3+
-            Unblock-File $SoftwareFilePath
+            # Only functional on PS 3+; supplying the old cmd style way as well
+            Unblock-File -Path $SoftwareFilePath
+            Start-Process "$env:windir\system32\cmd.exe" "/c echo.>""$SoftwareFilePath"":Zone.Identifier"
             }
         Add-LogEntry "Running command line: `"$SoftwareFilePath`" $SoftwareSetupSyntax" "$LogInfo"
         $InstallCommandLine | Wait-Process -Timeout 600
@@ -103,6 +119,7 @@ function Install-CPHSoftware() {
 			}
     }
 
+    # Examine the return code and react appropriately
 function Verify-Install() {
     If ($script:Returncode -eq "0") {
         Add-LogEntry "$SoftwareTitle, $SoftwareVersion appears to have installed successfully." "$LogInfo" }
@@ -115,6 +132,7 @@ function Verify-Install() {
             Exit $script:Returncode }
     }
 
+    # Remove shortcuts and any other undesirable files or keys
 function Remove-Shortcuts() {
     Add-LogEntry "Attempting to remove shortcuts from public desktop." "$LogInfo"
     $ShortcutFile = "$PublicDesktop\$SoftwareTitle.lnk"
@@ -124,7 +142,7 @@ function Remove-Shortcuts() {
         Remove-Item $ShortcutFile }
     }
 
- #Use this function to do misc configuration, such as copying config. files
+ # Use this function to do misc configuration, such as copying config. files
 function Install-SoftwareConfiguration() {
     Add-LogEntry "Starting install configuration." "$LogInfo"
     If ((Test-Path "$ScriptPath\file.cfg") -and (Test-Path "${env:ProgramFiles(x86)}\$SoftwareTitle")) {
@@ -136,7 +154,7 @@ function Install-SoftwareConfiguration() {
     }
      
 # Update ConfigMgr Hardware Inventory
-function Get-HardwareInventory () {
+function Get-HardwareInventory() {
     $SMSClient = [wmiclass] "\\$env:COMPUTERNAME\root\ccm:SMS_Client"
     $SMSClient.TriggerSchedule("{00000000-0000-0000-0000-000000000001}")
     Add-LogEntry "Running Hardware Inventory." "$LogInfo"
@@ -145,7 +163,7 @@ function Get-HardwareInventory () {
 # Execute
 New-LogFile
 #Uninstall-OldVersions
-Install-CPHSoftware
+Install-Software
 #Remove-Shortcuts
 #Install-SoftwareConfiguration
 Get-HardwareInventory
