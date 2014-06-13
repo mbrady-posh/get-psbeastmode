@@ -101,12 +101,10 @@ function Install-Software() {
     Add-LogEntry "Attempting to install software $SoftwareTitle, $SoftwareVersion" "$LogInfo"
 
    If (Test-Path $SoftwareFilePath) {
-        If (($Host.Version.Major -ne 1) -and ($Host.Version.Major -ne 2)) {
-            Add-LogEntry "Disabling open file security warning" "$LogInfo"
-            # Only functional on PS 3+; supplying the old cmd style way as well
-            Unblock-File -Path $SoftwareFilePath
-            Start-Process "$env:windir\system32\cmd.exe" "/c echo.>""$SoftwareFilePath"":Zone.Identifier"
-            }
+        Add-LogEntry "Disabling open file security warning" "$LogInfo"
+        # Only functional on PS 3+; supplying the old cmd style way as well
+        Unblock-File -Path $SoftwareFilePath | Out-Null
+        Start-Process "$env:windir\system32\cmd.exe" "/c echo.>""$SoftwareFilePath"":Zone.Identifier"
         Add-LogEntry "Running command line: `"$SoftwareFilePath`" $SoftwareSetupSyntax" "$LogInfo"
         $InstallCommandLine | Wait-Process -Timeout 600
         $script:Returncode = ($InstallCommandLine).ExitCode
