@@ -159,7 +159,7 @@ Foreach ($UserID in $UserIDs) {
            Else {
                 $Storagesession = New-PSSession -ComputerName $storageserver -Credential $admincredentials
                 Enter-PSSession -Session $Storagesession
-                Start-Process "C:\Scripts\createnewshare.bat" "$UserId" | Wait-Process 200
+                 Invoke-Command -Session $Storagesession -ScriptBlock {  Start-Process "C:\Scripts\createhome.bat" "$UserId" | Wait-Process 200 }
                 $Sharestatus = Get-WmiObject -Class Win32_Share | Where-Object {$_.Name -eq "$UserId" }
                 If (-Not($Sharestatus -eq $null)) {
                     Write-Verbose "Share Created."
@@ -167,7 +167,6 @@ Foreach ($UserID in $UserIDs) {
                     Else {
                         Write-Error "Share doesn't seem to have been created. Please verify manually."
                         }
-                Exit-PSSession
                 Remove-PSSession $Storagesession
                 } 
             }
