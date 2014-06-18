@@ -6,7 +6,7 @@
 
     .DESCRIPTION
 
-    This script is generalized as-is but it should be customized alongside an XML file (which would be accessible only to Domain Admins, ideally). This script requires the ActiveDirectory module be available and Powershell remoting must be enabled on your storage server. Written by Michael Brady.
+    This script is generalized as-is but it should be customized alongside an XML file (which would be accessible only to Domain Admins, ideally). This script requires the ActiveDirectory module be available and Powershell remoting must be enabled on your storage server. The use of the Verbose parameter is recommended. Written by Michael Brady.
     
     .PARAMETER XMLpath
 
@@ -96,6 +96,7 @@ Foreach ($UserID in $UserIDs) {
      $Userobject = (Get-Aduser $userid -server $ADserver -properties scriptpath,homedirectory,homedrive,useraccountcontrol)
      Foreach ($group in ($universalgroups).value) {
          If (-Not(Get-Adgroupmember -Identity $group).Name -like "$UserId") {
+              Write-Verbose "Adding $UserId to $group"
               Add-ADGroupMember -Identity $group -Members $userobject -Credential $admincredentials
               }
         $group = ""
@@ -104,6 +105,7 @@ Foreach ($UserID in $UserIDs) {
             Write-Verbose "$UserID is staff."
             Foreach ($group in ($Allstaffgroups).Value) {
                  If (-Not(Get-Adgroupmember -Identity $group).Name -like "$UserId") {
+                    Write-Verbose "Adding $UserId to $group"
                     Add-ADGroupMember -Identity $group -Members $userobject -Credential $admincredentials
                     }
                 $group = ""
@@ -111,18 +113,21 @@ Foreach ($UserID in $UserIDs) {
             Switch ($JobCode) {
                 "F" { 
                     If (-Not(Get-Adgroupmember -Identity $fgroup).Name -like "$UserId") {
+                        Write-Verbose "Adding $UserId to $group"
                         Add-ADGroupMember -Identity $fgroup -Members $userobject -Credential $admincredentials
                         }
                     break
                     }
                 "M" { 
                     If (-Not(Get-Adgroupmember -Identity $mgroup).Name -like "$UserId") {
+                        Write-Verbose "Adding $UserId to $group"
                         Add-ADGroupMember -Identity $mgroup -Members $userobject -Credential $admincredentials
                         }
                     break
                     }
                 "P" { 
                     If (-Not(Get-Adgroupmember -Identity $pgroup).Name -like "$UserId") {
+                        Write-Verbose "Adding $UserId to $group"
                         Add-ADGroupMember -Identity $pgroup -Members $userobject -Credential $admincredentials
                         }
                     break
@@ -137,6 +142,7 @@ Foreach ($UserID in $UserIDs) {
             Write-Verbose "$UserID is a student."
             Foreach ($group in ($studentgroups).Value) {
                 If (-Not(Get-Adgroupmember -Identity $group).Name -like "$UserId") {
+                    Write-Verbose "Adding $UserId to $group"
                     Add-ADGroupMember -Identity $group -Members $userobject -Credential $admincredentials
                     }
                 $group = ""
