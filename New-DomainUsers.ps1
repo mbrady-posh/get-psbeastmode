@@ -158,10 +158,9 @@ Foreach ($UserID in $UserIDs) {
            }
            Else {
                 $Storagesession = New-PSSession -ComputerName $storageserver -Credential $admincredentials
-                Enter-PSSession -Session $Storagesession
-                 Invoke-Command -Session $Storagesession -ScriptBlock {  Start-Process "C:\Scripts\createhome.bat" "$UserId" | Wait-Process 200 }
-                $Sharestatus = Get-WmiObject -Class Win32_Share | Where-Object {$_.Name -eq "$UserId" }
-                If (-Not($Sharestatus -eq $null)) {
+                Invoke-Command  -ArgumentList $UserId -Session $Storagesession -ScriptBlock {  param($Userid) Start-Process "C:\Scripts\createhiowa_new.bat" "$UserId" | Wait-Process 200 }
+                $OutShareStatus = Invoke-Command -ArgumentList $UserId -Session $Storagesession -ScriptBlock { param($UserId) Get-WmiObject -Class Win32_Share | Where-Object {$_.Name -eq "$UserId" }  }    
+                If (-Not($OutSharestatus -eq $null)) {
                     Write-Verbose "Share Created."
                     }
                     Else {
