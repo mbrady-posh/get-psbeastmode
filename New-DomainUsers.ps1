@@ -95,7 +95,8 @@ Foreach ($UserID in $UserIDs) {
      $ADConnection.Close()
      $Userobject = (Get-Aduser $userid -server $ADserver -properties scriptpath,homedirectory,homedrive,useraccountcontrol)
      Foreach ($group in ($universalgroups).value) {
-         If (-Not(Get-Adgroupmember -Identity $group).Name -like "$UserId") {
+        $Groupnames = (Get-Adgroupmember -Identity $group).Name
+         If (-Not($Groupnames.Contains("$UserId"))) {
               Write-Verbose "Adding $UserId to $group"
               Add-ADGroupMember -Identity $group -Members $userobject -Credential $admincredentials
               }
@@ -104,7 +105,8 @@ Foreach ($UserID in $UserIDs) {
       If ($Placement -eq "Staff") {
             Write-Verbose "$UserID is staff."
             Foreach ($group in ($Allstaffgroups).Value) {
-                 If (-Not(Get-Adgroupmember -Identity $group).Name -like "$UserId") {
+                $Groupnames = (Get-Adgroupmember -Identity $group).Name
+                 If (-Not($Groupnames.Contains("$UserId"))) {
                     Write-Verbose "Adding $UserId to $group"
                     Add-ADGroupMember -Identity $group -Members $userobject -Credential $admincredentials
                     }
@@ -112,22 +114,25 @@ Foreach ($UserID in $UserIDs) {
               }
             Switch ($JobCode) {
                 "F" { 
-                    If (-Not(Get-Adgroupmember -Identity $fgroup).Name -like "$UserId") {
-                        Write-Verbose "Adding $UserId to $group"
+                    $Groupnames = (Get-Adgroupmember -Identity $fgroup).Name
+                    If (-Not($Groupnames.Contains("$UserId"))) {
+                        Write-Verbose "Adding $UserId to $fgroup"
                         Add-ADGroupMember -Identity $fgroup -Members $userobject -Credential $admincredentials
                         }
                     break
                     }
                 "M" { 
-                    If (-Not(Get-Adgroupmember -Identity $mgroup).Name -like "$UserId") {
-                        Write-Verbose "Adding $UserId to $group"
+                    $Groupnames = (Get-Adgroupmember -Identity $mgroup).Name
+                    If (-Not($Groupnames.Contains("$UserId"))) {
+                        Write-Verbose "Adding $UserId to $mgroup"
                         Add-ADGroupMember -Identity $mgroup -Members $userobject -Credential $admincredentials
                         }
                     break
                     }
                 "P" { 
-                    If (-Not(Get-Adgroupmember -Identity $pgroup).Name -like "$UserId") {
-                        Write-Verbose "Adding $UserId to $group"
+                    $Groupnames = (Get-Adgroupmember -Identity $pgroup).Name
+                    If (-Not($Groupnames.Contains("$UserId"))) {
+                        Write-Verbose "Adding $UserId to $pgroup"
                         Add-ADGroupMember -Identity $pgroup -Members $userobject -Credential $admincredentials
                         }
                     break
@@ -141,7 +146,8 @@ Foreach ($UserID in $UserIDs) {
         If ($Placement -eq "Student") {
             Write-Verbose "$UserID is a student."
             Foreach ($group in ($studentgroups).Value) {
-                If (-Not(Get-Adgroupmember -Identity $group).Name -like "$UserId") {
+                $Groupnames = (Get-Adgroupmember -Identity $group).Name
+                If (-Not($Groupnames.Contains("$UserId"))) {
                     Write-Verbose "Adding $UserId to $group"
                     Add-ADGroupMember -Identity $group -Members $userobject -Credential $admincredentials
                     }
