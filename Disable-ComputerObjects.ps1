@@ -14,7 +14,7 @@
 
     .EXAMPLE
 
-    .\Disable-ComputerObjects.ps1 \\CONTOSO\newusers.xml
+    .\Disable-ComputerObjects.ps1 \\CONTOSO\disableobjects.xml
 
     Computer objects will be disabled/removed based on the xml specified.
 
@@ -55,7 +55,17 @@ If (-Not(($ModuleList).Name.Contains("ActiveDirectory"))) {
         }
 
 # Import XML file and assign variables
-[xml]$XMLData = [xml](Get-Content -Path '')
+If (-Not($XMLpath)) {
+    [xml]$XMLData = [xml](Get-Content -Path "")
+    }
+    Else {
+        If (Test-Path ($XMLpath)) {
+            [xml]$XMLData = [xml](Get-Content -Path $XMLpath)
+            }
+            Else {
+                Throw "XML path given could not be found. Please check the value given for the parameter and try again."
+                }
+        }
     $CMSite = $XMLData.ObjectCleanup.CM.CMSite
     $CMTopCollection = $XMLData.ObjectCleanup.CM.CMTopCollection
 

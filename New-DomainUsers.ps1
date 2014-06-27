@@ -34,32 +34,42 @@ If ((Get-Module).Name -notcontains "ActiveDirectory") {
 
 $admincredentials = (Get-Credential -Message 'Type Domain Admin Credentials') 
 
-[xml]$XMLpath = [xml](Get-Content -Path "")
+If (-Not($XMLpath)) {
+    [xml]$XMLData = [xml](Get-Content -Path "")
+    }
+    Else {
+        If (Test-Path $XMLpath) {
+            [xml]$XMLData = [xml](Get-Content -Path $XMLpath)
+            }
+            Else {
+                Throw "XML path given could not be found. Please check the value given for the parameter and try again."
+                }
+            }
 
 # Import variables from XML
-$ConnectionString = $XMLPath.NewUserInfo.metapeople.connectionstring
-$SelectFields = $XMLPath.NewUserInfo.metapeople.selectfields
-$LDAPServer = "`'" + $XMLPath.NewUserInfo.metapeople.ldapserver + "`'"
-$Queryfield = $XMLPath.NewUserinfo.metapeople.queryfield
+$ConnectionString = $XMLData.NewUserInfo.metapeople.connectionstring
+$SelectFields = $XMLData.NewUserInfo.metapeople.selectfields
+$LDAPServer = "`'" + $XMLData.NewUserInfo.metapeople.ldapserver + "`'"
+$Queryfield = $XMLData.NewUserinfo.metapeople.queryfield
 
-$ADserver = $XMLpath.NewUserInfo.ADoperations.adserver
-$InboundOU = $XMLpath.NewUserInfo.ADoperations.inboundou
-$universalgroups = $XMLpath.NewUserInfo.ADoperations.universalgroups
-$Allstaffgroups = $XMLpath.NewUserInfo.ADoperations.allstaffgroups
-$fgroup = $XMLpath.NewUserInfo.ADoperations.fgroup
-$mgroup =  $XMLpath.NewUserInfo.ADoperations.mgroup
-$pgroup =  $XMLpath.NewUserInfo.ADoperations.pgroup
-$studentgroups = $XMLpath.NewUserInfo.ADoperations.studentgroups
-$movedou = $XMLpath.NewUserInfo.ADoperations.movedou
+$ADserver = $XMLData.NewUserInfo.ADoperations.adserver
+$InboundOU = $XMLData.NewUserInfo.ADoperations.inboundou
+$universalgroups = $XMLData.NewUserInfo.ADoperations.universalgroups
+$Allstaffgroups = $XMLData.NewUserInfo.ADoperations.allstaffgroups
+$fgroup = $XMLData.NewUserInfo.ADoperations.fgroup
+$mgroup =  $XMLData.NewUserInfo.ADoperations.mgroup
+$pgroup =  $XMLData.NewUserInfo.ADoperations.pgroup
+$studentgroups = $XMLData.NewUserInfo.ADoperations.studentgroups
+$movedou = $XMLData.NewUserInfo.ADoperations.movedou
 
-$homelocation1 = $XMLpath.NewUserInfo.homeandlogon.homelocation1
-$homelocation2 = $XMLpath.NewUserInfo.homeandlogon.homelocation2
-$homedrive = $XMLpath.NewUserInfo.homeandlogon.homedrive
-$homeshare = $XMLpath.NewUserInfo.homeandlogon.homeshare
-$storageserver = $XMLpath.NewUserInfo.homeandlogon.storageserver
-$sharegroups = $XMLpath.NewUserInfo.homeandlogon.sharegroups
-$logonscript = $XMLpath.NewUserInfo.homeandlogon.logonscript
-$useraccountcontrol =  $XMLpath.NewUserInfo.homeandlogon.useraccountcontrol
+$homelocation1 = $XMLData.NewUserInfo.homeandlogon.homelocation1
+$homelocation2 = $XMLData.NewUserInfo.homeandlogon.homelocation2
+$homedrive = $XMLData.NewUserInfo.homeandlogon.homedrive
+$homeshare = $XMLData.NewUserInfo.homeandlogon.homeshare
+$storageserver = $XMLData.NewUserInfo.homeandlogon.storageserver
+$sharegroups = $XMLData.NewUserInfo.homeandlogon.sharegroups
+$logonscript = $XMLData.NewUserInfo.homeandlogon.logonscript
+$useraccountcontrol =  $XMLData.NewUserInfo.homeandlogon.useraccountcontrol
 
 $UserIDs = (Get-Adobject -SearchBase  "$InboundOU" -Filter { objectClass -eq "user" } -server $ADserver ).Name
 
