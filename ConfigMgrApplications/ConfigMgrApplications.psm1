@@ -80,7 +80,7 @@ function Test-CMApplication {
             $VerbosePreference = "SilentlyContinue" ; Import-Module $ModulePath ; $VerbosePreference = "Continue"
             Try {
                 Write-Verbose "Creating PSDrive $($CMSite):\"
-                New-PSDrive -PSProvider CMSite -Name $CMSite -Root $CMSite
+                New-PSDrive -PSProvider CMSite -Name $CMSite -Root $CMSiteServer
                 }
                 Catch {
                     Throw "PSDrive could not be created. Check permissions to your CM Site. Exiting Script."
@@ -258,7 +258,7 @@ function Start-CMProductionDeployment {
             $VerbosePreference = "SilentlyContinue" ; Import-Module $ModulePath ; $VerbosePreference = "Continue"
             Try {
                 Write-Verbose "Creating PSDrive $($CMSite):\"
-                New-PSDrive -PSProvider CMSite -Name $CMSite -Root $CMSite
+                New-PSDrive -PSProvider CMSite -Name $CMSite -Root $CMSiteServer
                 }
                 Catch {
                     Throw "PSDrive could not be created. Check permissions to your CM Site. Exiting Script."

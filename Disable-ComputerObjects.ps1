@@ -26,6 +26,27 @@
             [string]$XMLpath
         )
 
+# Import XML file and assign variables
+If (-Not($XMLpath)) {
+    [xml]$XMLData = [xml](Get-Content -Path "")
+    }
+    Else {
+        If (Test-Path ($XMLpath)) {
+            [xml]$XMLData = [xml](Get-Content -Path $XMLpath)
+            }
+            Else {
+                Throw "XML path given could not be found. Please check the value given for the parameter and try again."
+                }
+        }
+    $CMSite = $XMLData.ObjectCleanup.CM.CMSite
+    $CMTopCollection = $XMLData.ObjectCleanup.CM.CMTopCollection
+    $CMSiteServer = $XMLData.ObjectCleanup.CM.CMSiteServer
+
+    $InactiveTimeSpan = $XMLData.ObjectCleanup.AD.InactiveTimeSpan
+    $ADServer = $XMLData.ObjectCleanup.AD.ADServer
+    $ADSearchBase = $XMLData.ObjectCleanup.AD.ADSearchBase
+    $ADInactiveContainer = $XMLData.Objectcleanup.AD.ADInactiveContainer
+
 $OriginalPath = (Get-Location).Path
 
 # Make sure the relevant modules can be loaded: Configuration Manager and ActiveDirectory
@@ -34,8 +55,7 @@ If (-Not((Get-Module).Name.Contains("ConfigurationManager"))) {
         $SplitPathArray = $env:SMS_ADMIN_UI_PATH.Split("\")
         $ModulePath = $SplitPathArray[0] + "\" + $SplitPathArray[1] + "\" + $SplitPathArray[2] + "\" + $SplitPathArray[3] + "\" + "ConfigurationManager.psd1"
         $VerbosePreference = "SilentlyContinue" ; Import-Module $ModulePath ; $VerbosePreference = "Continue"
-        $CMSite = $XMLData.ObjectCleanup.CM.CMSite
-        New-PSDrive -PSProvider CMSite -Name $CMSite -Root $CMSite
+        New-PSDrive -PSProvider CMSite -Name $CMSite -Root $CMSiteServer
         }
         Else {
             Throw "Configuration Manager module could not be located or loaded. Exiting script."
@@ -53,26 +73,6 @@ If (-Not(($ModuleList).Name.Contains("ActiveDirectory"))) {
     Else {
         Write-Verbose "Active Directory module can be loaded."
         }
-
-# Import XML file and assign variables
-If (-Not($XMLpath)) {
-    [xml]$XMLData = [xml](Get-Content -Path "")
-    }
-    Else {
-        If (Test-Path ($XMLpath)) {
-            [xml]$XMLData = [xml](Get-Content -Path $XMLpath)
-            }
-            Else {
-                Throw "XML path given could not be found. Please check the value given for the parameter and try again."
-                }
-        }
-    $CMSite = $XMLData.ObjectCleanup.CM.CMSite
-    $CMTopCollection = $XMLData.ObjectCleanup.CM.CMTopCollection
-
-    $InactiveTimeSpan = $XMLData.ObjectCleanup.AD.InactiveTimeSpan
-    $ADServer = $XMLData.ObjectCleanup.AD.ADServer
-    $ADSearchBase = $XMLData.ObjectCleanup.AD.ADSearchBase
-    $ADInactiveContainer = $XMLData.Objectcleanup.AD.ADInactiveContainer
 
 $ADInactive = Search-ADAccount -AccountInactive -Timespan $InactiveTimeSpan -SearchBase "$ADSearchBase" -server $ADServer
 $PCNames = $ADInactive.Name
