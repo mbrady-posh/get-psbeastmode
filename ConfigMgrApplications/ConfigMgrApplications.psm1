@@ -68,7 +68,7 @@ function Test-CMApplication {
     $TestCollectionName = $XMLData.AppDeploy.TestCollName
     $CMSite = $XMLData.AppDeploy.CMSite
     $CMSiteServer = $XMLData.AppDeploy.CMSiteServer
-    $CMDPName = $XMLData.AppDeply.CMDPName
+    $CMDPName = $XMLData.AppDeploy.CMDPName
 
     $ApplicationName = "$ApplicationNamePrefix - $SoftwareName $SoftwareVersion"
 
@@ -95,10 +95,10 @@ function Test-CMApplication {
             }
 
 
-    $ScriptDeploymentDetection = Get-Content "$SoftwareRepo\$SoftwareName\$SoftwareVersion\$($SoftwareName)_detection.ps1"
+    $ScriptDeploymentDetection = Get-Content "$SoftwareRepo\$SoftwareName\$SoftwareVersion\$($SoftwareName)_detection.ps1" -Raw
 
     Switch ($SoftwareName) {
-        "Test" { $EstInstallTime = 30 ; $MaxInstallTime = 120 ; $InstallBehaviorType = "InstallForSystem" }
+        default { $EstInstallTime = 10 ; $MaxInstallTime = 60 ; $InstallBehaviorType = "InstallForSystem" }
         }
 
     $Deploymenttypeparams = @{ ApplicationName  = $ApplicationName
@@ -110,7 +110,7 @@ function Test-CMApplication {
                                                             ScriptType = 'Powershell'
                                                             AllowClientsToShareContentOnSameSubnet = $False
                                                             ContentLocation = "$SoftwareRepo\$SoftwareName\$SoftwareVersion"
-                                                            InstallationProgram = "C:\Windows\system32\WindowsPowerShell\v1.0\powershell.exe -File $($SoftwareName)_autoinstall.ps1"
+                                                            InstallationProgram = "C:\Windows\system32\WindowsPowerShell\v1.0\powershell.exe -File ""$($SoftwareName)_autoinstall.ps1"""
                                                             InstallationBehaviorType = $InstallBehaviorType
                                                             LogonRequirementType = 'OnlyWhenNoUserLoggedOn'
                                                             EstimatedInstallationTimeMinutes = $EstInstallTime
