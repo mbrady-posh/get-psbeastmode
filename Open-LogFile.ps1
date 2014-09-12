@@ -78,11 +78,11 @@ If ($Credential) {
 If ($EntireLog.IsPresent) {
     $OriginalPath = Get-Location 
     Set-Location $env:SystemDrive
-    If ($Path -like "*ccm*") {
+    If (($Path -like "*ccm*") -or ($Path -like "*smsts*")) {
         If ($Credential) {
             Try {
                $ErrorActionPreference = "Stop"
-               Start-Process "${env:ProgramFiles(x86)}\ConfigMgr Console Extensions\cmtrace.exe" "$Path" -Credential $Credential
+               Start-Process "${env:ProgramFiles(x86)}\ConfigMgr Console Extensions\cmtrace.exe" """$Path""" -Credential $Credential
                 }
             Catch {
                 Write-Error $error[0]
@@ -95,7 +95,7 @@ If ($EntireLog.IsPresent) {
             Else {
                 Try {
                     $ErrorActionPreference = "Stop"
-                    Start-Process "${env:ProgramFiles(x86)}\ConfigMgr Console Extensions\cmtrace.exe" "$Path"
+                    Start-Process "${env:ProgramFiles(x86)}\ConfigMgr Console Extensions\cmtrace.exe" """$Path"""
                     }
                 Catch {
                     Write-Error $error[0]
@@ -110,7 +110,7 @@ If ($EntireLog.IsPresent) {
             If ($Credential) {
                 Try {
                     $ErrorActionPreference = "Stop"
-                    Start-Process "${env:ProgramFiles(x86)}\Notepad++\notepad++.exe" "$Path" -Credential $Credential
+                    Start-Process "${env:ProgramFiles(x86)}\Notepad++\notepad++.exe" """$Path""" -Credential $Credential
                     }
                 Catch {
                     Write-Error $error[0]
@@ -123,7 +123,7 @@ If ($EntireLog.IsPresent) {
                 Else {
                     Try {
                         $ErrorActionPreference = "Stop"
-                        Start-Process "${env:ProgramFiles(x86)}\Notepad++\notepad++.exe" "$Path"
+                        Start-Process "${env:ProgramFiles(x86)}\Notepad++\notepad++.exe" """$Path"""
                         }
                     Catch {
                         Write-Error $error[0]
