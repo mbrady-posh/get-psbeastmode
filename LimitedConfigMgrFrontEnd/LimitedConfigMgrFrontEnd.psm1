@@ -95,7 +95,7 @@ Function Add-CMDevicetoInstallCollection {
             $ModulePath = $SplitPathArray[0] + "\" + $SplitPathArray[1] + "\" + $SplitPathArray[2] + "\" + $SplitPathArray[3] + "\" + $SplitPathArray[4] + "\" + "ConfigurationManager.psd1"
             $VerbosePreference = "SilentlyContinue" ; Import-Module $ModulePath ; $VerbosePreference = "Continue"
             Try {
-                Write-Verbose "Creating PSDrive UI:\"
+                Write-Verbose "Creating PSDrive $($SiteCode):\"
                 New-PSDrive -PSProvider CMSite -Name $SiteCode -Root $SiteRoot | Out-Null
                 }
                 Catch {
@@ -112,7 +112,7 @@ Function Add-CMDevicetoInstallCollection {
 
     $script:OriginalPath = (Get-Location).Path
 
-    Set-Location UI1:\
+    Set-Location "$($SiteCode):\"
 
     # Get and validate computer name
                    Do {
@@ -244,7 +244,7 @@ Function Add-CMDevicetoImagingCollection {
             $ModulePath = $SplitPathArray[0] + "\" + $SplitPathArray[1] + "\" + $SplitPathArray[2] + "\" + $SplitPathArray[3] + "\" + $SplitPathArray[4] + "\" + "ConfigurationManager.psd1"
             $VerbosePreference = "SilentlyContinue" ; Import-Module $ModulePath ; $VerbosePreference = "Continue"
             Try {
-                Write-Verbose "Creating PSDrive UI:\"
+                Write-Verbose "Creating PSDrive $($SiteCode):\"
                 New-PSDrive -PSProvider CMSite -Name $SiteCode -Root $SiteRoot | Out-Null
                 }
                 Catch {
@@ -263,7 +263,7 @@ Function Add-CMDevicetoImagingCollection {
 
     $script:OriginalPath = (Get-Location).Path
 
-    Set-Location UI1:\
+    Set-Location "$($SiteCode):\"
 
     # Get and validate computer name
                    Do {
