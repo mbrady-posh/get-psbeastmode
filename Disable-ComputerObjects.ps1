@@ -53,7 +53,7 @@ $OriginalPath = (Get-Location).Path
 If (-Not((Get-Module).Name.Contains("ConfigurationManager"))) {
     If (Test-Path $env:SMS_ADMIN_UI_PATH) {
         $SplitPathArray = $env:SMS_ADMIN_UI_PATH.Split("\")
-        $ModulePath = $SplitPathArray[0] + "\" + $SplitPathArray[1] + "\" + $SplitPathArray[2] + "\" + $SplitPathArray[3] + "\" + "ConfigurationManager.psd1"
+        $ModulePath = $SplitPathArray[0] + "\" + $SplitPathArray[1] + "\" + $SplitPathArray[2] + "\" + $SplitPathArray[3] + "\" + $SplitPathArray[4] + "\" + "ConfigurationManager.psd1"
         $VerbosePreference = "SilentlyContinue" ; Import-Module $ModulePath ; $VerbosePreference = "Continue"
         New-PSDrive -PSProvider CMSite -Name $CMSite -Root $CMSiteServer
         }
