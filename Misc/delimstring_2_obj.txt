@@ -1,0 +1,15 @@
+﻿$text = Get-content $env:USERPROFILE\desktop\test.txt
+
+$textobj = (($text | Foreach-Object {If ($_ -like "") {echo "--"} Else {Echo $_} }) -Join "`r`n") -Split "--"
+
+$i = 0
+$masterarray = @()
+Foreach ($obj in $textobj) {
+    $props = @{}
+    Foreach ($line in $($obj.Trim() -Split "`r`n")) {
+        $property = ($line -Split ": ")[0]
+        $value = ($line -Split ": ")[1]
+        $props += @{$($property)=$($value)}
+        }
+    $masterarray += New-Object -TypeName PSObject -Property $props
+    }

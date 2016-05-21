@@ -1,0 +1,1 @@
+﻿$script:scriptpath = split-path -parent $MyInvocation.MyCommand.Definition

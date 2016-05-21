@@ -1,0 +1,29 @@
+﻿Import-Module ActiveDirectory
+
+$SMTPServer = "smtp.com"
+$ImpactedDomain = $(((((Get-WmiObject -Class Win32_ComputerSystem).Domain).Split("."))[0]).ToUpper())
+$SubjectBase = "$($ImpactedDomain) account"
+$From = "AccountNotify@domain"
+
+$Expiry = (Get-ADDefaultDomainPasswordPolicy).MaxPasswordAge.Days
+
+$NotifyUsers = Get-ADUser -Filter {(mail -like "*") -and (Enabled -eq "True")} -Properties pwdlastset,mail,cn,surname,samaccountname,lastlogontimestamp -Server $env:COMPUTERNAME
+Foreach ($User in $NotifyUsers) {
+    $Passexpires = ([datetime]::FromFileTime($User.pwdlastset)).AddDays($Expiry)
+    $AccountDisable = ([datetime]::FromFileTime($User.lastlogontimestamp)).AddDays($Expiry - 30)
+
+    Switch (($Passexpires - (Get-Date)).Days) {
+        9 { Send-MailMessage -SmtpServer $SMTPServer -Subject "$($SubjectBase) password expiry notice" -From $From -To $user.mail -BodyAsHtml "Your <b>$($ImpactedDomain)\$($user.samaccountname)</b> account password will expire in approximately 10 days at $(Get-Date $Passexpires -Format "MM-dd-yy hh:mm:ss").<br><br> If you still need this account, please log into a Windows system on the $($ImpactedDomain) domain and reset your password either by pressing CTRL-ALT-DELETE (or CTRL-ALT-END over remote desktop) and selecting `"Change a password...`".<br/><br/>This notice is being sent from an unmonitored email address; please do not reply. Thank you." ; Break }
+        4 { Send-MailMessage -SmtpServer $SMTPServer -Subject "$($SubjectBase) password expiry notice" -From $From -To $user.mail -BodyAsHtml "Your <b>$($ImpactedDomain)\$($user.samaccountname)</b> account password will expire in approximately 5 days at $(Get-Date $Passexpires -Format "MM-dd-yy hh:mm:ss").<br><br> If you still need this account, please log into a Windows system on the $($ImpactedDomain) domain and reset your password either by pressing CTRL-ALT-DELETE (or CTRL-ALT-END over remote desktop) and selecting `"Change a password...`".<br/><br/>This notice is being sent from an unmonitored email address; please do not reply. Thank you." ; Break }
+        1 { Send-MailMessage -SmtpServer $SMTPServer -Subject "$($SubjectBase) password expiry notice" -From $From -To $user.mail -BodyAsHtml "Your <b>$($ImpactedDomain)\$($user.samaccountname)</b> account password will expire in approximately 2 days at $(Get-Date $Passexpires -Format "MM-dd-yy hh:mm:ss").<br><br> If you still need this account, please log into a Windows system on the $($ImpactedDomain) domain and reset your password either by pressing CTRL-ALT-DELETE (or CTRL-ALT-END over remote desktop) and selecting `"Change a password...`".<br/><br/>This notice is being sent from an unmonitored email address; please do not reply. Thank you." ; Break }
+        0 { Send-MailMessage -SmtpServer $SMTPServer -Subject "$($SubjectBase) password expiry notice" -From $From -To $user.mail -BodyAsHtml "Your <b>$($ImpactedDomain)\$($user.samaccountname)</b> account password will expire in approximately 1 day at $(Get-Date $Passexpires -Format "MM-dd-yy hh:mm:ss").<br><br> If you still need this account, please log into a Windows system on the $($ImpactedDomain) domain and reset your password either by pressing CTRL-ALT-DELETE (or CTRL-ALT-END over remote desktop) and selecting `"Change a password...`".<br/><br/>This notice is being sent from an unmonitored email address; please do not reply. Thank you." ; Break }
+        default {
+            Switch (($AccountDisable - (Get-Date)).Days) {
+                9 { Send-MailMessage -SmtpServer $SMTPServer -Subject "$($SubjectBase) inactivity notice" -From $From -To $user.mail -BodyAsHtml "Your <b>$($ImpactedDomain)\$($user.samaccountname)</b> account will be automatically disabled for inactivity in approximately 10 days on $(Get-Date $AccountDisable -Format "MM-dd-yy").<br><br> If you still need this account, please log into a Windows system on the $($ImpactedDomain) domain to reset the inactivity timer.<br/><br/>This notice is being sent from an unmonitored email address; please do not reply. Thank you." ; Break }
+                4 { Send-MailMessage -SmtpServer $SMTPServer -Subject "$($SubjectBase) inactivity notice" -From $From -To $user.mail -BodyAsHtml "Your <b>$($ImpactedDomain)\$($user.samaccountname)</b> account will be automatically disabled for inactivity in approximately 5 days on $(Get-Date $AccountDisable -Format "MM-dd-yy").<br><br> If you still need this account, please log into a Windows system on the $($ImpactedDomain) domain to reset the inactivity timer.<br/><br/>This notice is being sent from an unmonitored email address; please do not reply. Thank you." ; Break }
+                1 { Send-MailMessage -SmtpServer $SMTPServer -Subject "$($SubjectBase) inactivity notice" -From $From -To $user.mail -BodyAsHtml "Your <b>$($ImpactedDomain)\$($user.samaccountname)</b> account will be automatically disabled for inactivity in approximately 2 days on $(Get-Date $AccountDisable -Format "MM-dd-yy").<br><br> If you still need this account, please log into a Windows system on the $($ImpactedDomain) domain to reset the inactivity timer.<br/><br/>This notice is being sent from an unmonitored email address; please do not reply. Thank you." ; Break }
+                0 { Send-MailMessage -SmtpServer $SMTPServer -Subject "$($SubjectBase) inactivity notice" -From $From -To $user.mail -BodyAsHtml "Your <b>$($ImpactedDomain)\$($user.samaccountname)</b> account will be automatically disabled for inactivity in approximately 1 day on $(Get-Date $AccountDisable -Format "MM-dd-yy").<br><br> If you still need this account, please log into a Windows system on the $($ImpactedDomain) domain to reset the inactivity timer.<br/><br/>This notice is being sent from an unmonitored email address; please do not reply. Thank you." ; Break }
+                }
+            }
+        }
+    }
